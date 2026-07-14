@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espai Memòria</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <style>
+        :root {
+            --bg-main: #f5f7f8;
+            --bg-sidebar: #2c3e50;
+            --sidebar-hover: #34495e;
+            --sidebar-active: #1abc9c;
+            --text-light: #ecf0f1;
+            --text-dark: #2c3e50;
+            --card-bg: #ffffff;
+            --border-color: #dcdde1;
+            --accent: #7f8c8d;
+            --terapeutic: #e74c3c;
+            --calculadora: #9b59b6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            display: flex;
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* BARRA LATERAL (SIDEBAR) */
+        .sidebar {
+            width: 300px;
+            background-color: var(--bg-sidebar);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 1.5rem 0;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            padding: 0 1.5rem 1.5rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+
+        .sidebar-brand h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--text-light);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            margin-top: 1rem;
+            flex-grow: 1;
+        }
+
+        .sidebar-item {
+            padding: 0.7rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #bdf;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .sidebar-item svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+
+        .sidebar-item:hover {
+            background-color: var(--sidebar-hover);
+            color: white;
+        }
+
+        .sidebar-item.active {
+            background-color: var(--sidebar-active);
+            color: white;
+            border-left: 4px solid #fff;
+        }
+
+        .sidebar-item.destacat {
+            color: #ffcccc;
+            border-left: 4px solid var(--terapeutic);
+        }
+        .sidebar-item.destacat.active {
+            background-color: var(--terapeutic);
+            color: white;
+        }
+
+        .sidebar-item.calcul-item {
+            color: #ebd4fc;
+            border-left: 4px solid var(--calculadora);
+        }
+        .sidebar-item.calcul-item.active {
+            background-color: var(--calculadora);
+            color: white;
+        }
+
+        .sidebar-footer {
+            padding: 1rem 1.5rem;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.4);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+
+        /* CONTINGUT PRINCIPAL */
+        .main-content {
+            flex-grow: 1;
+            padding: 2.5rem;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-header {
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+        }
+
+        .section-header p {
+            color: var(--accent);
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        /* TARGETES I FORMULARIS */
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            background-color: #fbfbfc;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--sidebar-active);
+            background-color: #fff;
+        }
+
+        button {
+            background-color: var(--sidebar-active);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.8rem;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #16a085;
+        }
+
+        /* ELEMENTS GENERATS */
+        .item-llista {
+            background: #fdfefe;
+            border: 1px solid var(--border-color);
+            border-left: 5px solid var(--sidebar-active);
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border-radius: 6px;
+        }
+
+        .etiqueta-tipus {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            margin-right: 0.25rem;
+        }
+
+        .text-mut {
+            color: var(--accent);
+            font-style: italic;
+        }
+
+        .timeline {
+            position: relative;
+            margin-top: 2rem;
+            padding-left: 2rem;
+            border-left: 3px solid var(--border-color);
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2.45rem;
+            top: 0.25rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--sidebar-active);
+            border: 3px solid white;
+        }
+        .timeline-year {
+            font-weight: bold;
+            color: var(--sidebar-active);
+            font-size: 1.1rem;
+        }
+
+        /* ESTILS PÀGINA D'INICI */
+        .home-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+        .pilar-box {
+            background: #fcfcfc;
+            border: 1px solid var(--border-color);
+            padding: 1.2rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            line-height: 1.5;
+        }
+
+        /* ESTILS ESPECÍFICS CALCULADORES */
+        .calcul-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .metric-card {
+            background: #fcf8ff;
+            border: 1px solid #e8d5f5;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .metric-big {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--calculadora);
+            margin: 0.5rem 0;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+        .checkbox-item input {
+            width: auto;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <h1>Espai Memòria</h1>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li class="sidebar-item active" data-target="v-inici">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                Inici i Objectiu
+            </li>
+            
+            <li class="sidebar-item destacat" data-target="v-terapia">
+                <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.5 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                Resolució de Dol (Clau)
+            </li>
+
+            <li class="sidebar-item" data-target="v-perfils">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                Arxiu de Perfils
+            </li>
+            <li class="sidebar-item" data-target="v-diari">
+                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                Diari i Connexió
+            </li>
+            <li class="sidebar-item" data-target="v-multimedia">
+                <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c0 1.1-.9-2-2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                Baül de Records
+            </li>
+            <li class="sidebar-item" data-target="v-llegat">
+                <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+                El seu Llegat Actiu
+            </li>
+            <li class="sidebar-item" data-target="v-herencia">
+                <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.17 19.62 10.53 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+                Trets d'Herència
+            </li>
+            <li class="sidebar-item" data-target="v-timeline">
+                <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+                Línia Històrica del Temps
+            </li>
+            <li class="sidebar-item" data-target="v-cuina">
+                <svg viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm7-3c-1.78 0-3 1.41-3 3.5V14h5V9.5C20 7.41 18.78 6 18 6zm-3 10h6v6h-6v-6z"/></svg>
+                Cuina de la Memòria
+            </li>
+            <li class="sidebar-item" data-target="v-veus">
+                <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 1.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                Anècdotes Compartides
+            </li>
+
+            <!-- SECCIÓ MAPA DE RECORDS -->
+            <li class="sidebar-item" data-target="v-mapa">
+                <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                Mapa de Georrecords
+            </li>
+
+            <!-- SECCIÓ DATES ASSENYALADES -->
+            <li class="sidebar-item" data-target="v-dates">
+                <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5z"/></svg>
+                Dates Assenyalades
+            </li>
+
+            <!-- EINES DE CÀLCUL -->
+            <li class="sidebar-item calcul-item" data-target="v-calcul-llegat">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+                Brúixola de Llegat Actiu
+            </li>
+
+            <li class="sidebar-item calcul-item" data-target="v-temps-amor">
+                <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                Tresor del Temps Compartit
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <p>Espai Memòria © 2026</p>
+            <p>Dades 100% privades i locals</p>
+        </div>
+    </nav>
+
+    <main class="main-content">
+
+        <!-- INICI -->
+        <section id="v-inici" class="view-section active">
+            <div class="section-header">
+                <h2>Benvingut a Espai Memòria</h2>
+                <p>Un refugi digital per al dol actiu, basat en fets reals, respecte històric i ciència de la psicologia cognitiva.</p>
+            </div>
+            
+            <div class="home-grid">
+                <div>
+                    <div class="card">
+                        <h3>La Nostra Filosofia i Objectiu</h3>
+                        <p style="margin-top: 1rem; font-size: 1.05rem; line-height: 1.6;">
+                            <strong>Espai Memòria</strong> neix per oposar-se radicalment a la tendència moderna de simular veus, xats o cartes de persones mortes mitjançant algorismes d'Intel·ligència Artificial. La ciència neuropsicològica demostra que aquests simulacres atrapen la ment en una fase crònica de negació, alimentant un miratge digital que desactiva el procés natural d'acceptació de la pèrdua.
+                        </p>
+                        <p style="margin-top: 1rem; font-size: 1.05rem; line-height: 1.6;">
+                            El nostre objectiu és oferir-te una alternativa constructiva i estructurada per a establir el que la recerca anomena <strong>vincles continuats i saludables (Continuing Bonds Theory)</strong>: organitzar de manera objectiva la història de la seva vida, consolidar-ne el record verídic i canalitzar el dolor a través d'accions que et connectin amb la realitat de qui van ser.
+                        </p>
+                    </div>
+
+                    <div class="card" style="border-left: 5px solid var(--sidebar-active);">
+                        <h3 style="margin-bottom: 1rem;">Com i per què Espai Memòria et pot ajudar?</h3>
+                        
+                        <div class="pilar-box">
+                            <strong style="color: var(--sidebar-active); font-size: 1.1rem; display: block; margin-bottom: 0.4rem;">1. Canalització de l'angoixa per por a l'oblit</strong>
+                            La por que els detalls de la veu, de la vida, de les expressions o de les receptes d'un ésser estimat es desdibuixin amb els anys és una font de gran ansietat durant el dol. Aquest espai funciona com un anclatge documental. En fixar per escrit les anècdotes, receptes de cuina, paraules pròpies i dates de la persona, alliberes el teu cervell de la pressió d'haver de retenir-ho tot per força, sabent que està preservat de manera segura.
+                        </div>
+
+                        <div class="pilar-box">
+                            <strong style="color: var(--sidebar-active); font-size: 1.1rem; display: block; margin-bottom: 0.4rem;">2. Reestructuració cognitiva del sentiment de culpa</strong>
+                            Els buits no resolts, els perdons que van quedar per demanar o les lamentacions incontrolables solen bloquejar la pau interior. L'eina de <strong>Resolució de Dol</strong> t'ajuda a externalitzar aquests pensaments repetitius de manera honesta. Convertir el dolor amorf en paraules concretes és un pas fonamental per treure la culpa de la ment i redescobrir el vincle net i amorós que hi ha a sota.
+                        </div>
+
+                        <div class="pilar-box">
+                            <strong style="color: var(--sidebar-active); font-size: 1.1rem; display: block; margin-bottom: 0.4rem;">3. De l'absència passiva a la presència inspiradora</strong>
+                            La ment sol enfocar el buit de la pèrdua d'una manera paralitzant. Els nostres mòduls de <strong>Llegat Actiu</strong> i <strong>Brúixola d'Impacte</strong> et canvien el marc mental: en lloc de lamentar el que ya no hi és, l'eina mesura quantes de les seves ensenyances, valors ètics i expressions heretades segueixes posant en pràctica en el present. Ells continuen vius d'una forma molt pràctica i real: a través de les teves bones accions.
+                        </div>
+
+                        <div class="pilar-box">
+                            <strong style="color: var(--sidebar-active); font-size: 1.1rem; display: block; margin-bottom: 0.4rem;">4. Canvi de focus: Celebrar l'Amor en comptes d'alimentar la Mort</strong>
+                            L'eina del <strong>Tresor del Temps Compartit</strong> resol una distorsió cognitiva molt freqüol, que és centrar tota l'atenció de la pèrdua en el fet de la defunció. En calcular matemàticament els milers de dies, hores d'amor, àpats col·loquials i batecs sincronitzats que vau gaudir junts, la ment reequilibra la balança emocional, recordant que el vincle que vau construir és molt més vast, etern i real que el dolor de la darrera absència.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Els 3 Pilars Clínics del Dol Actiu</h3>
+                        <div class="pilar-box">
+                            <strong>1. Objectivitat Històrica:</strong> Salvaguardar dades, fites, refranys i receptes familiars reals. Mantenir fidel la memòria factual abans que el pas del temps en confongui els detalls.
+                        </div>
+                        <div class="pilar-box">
+                            <strong>2. Resolució Emocional:</strong> Un entorn segur per a escriure les paraules de perdó o d'agraïment pendent, tancant i endreçant mentalment cadascun dels assumptes que van quedar oberts.
+                        </div>
+                        <div class="pilar-box">
+                            <strong>3. Transmissió del Llegat:</strong> Comprendre que la millor manera d'honorar la seva memòria és aplicar els valors que et van transmetre a la teva pròpia vida diària.
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card" style="background: #eafaf1; border: 1px solid #2ecc71; text-align: center;">
+                        <h4 style="color: #27ae60; margin-bottom: 0.5rem;">Seguretat i Privacitat Absoluta</h4>
+                        <p style="font-size: 0.85rem; color: #2c3e50; line-height: 1.5;">
+                            Tot el que escrius en aquesta aplicació no s'envia a cap servidor ni a terceres empreses. Es guarda de forma 100% interna al teu ordinador o mòbil mitjançant el propi navegador local. Les teves paraules de dol, pors i records són i seran exclusivament teves.
+                        </p>
+                    </div>
+
+                    <div class="card" style="background: #fdfefe; border: 1px solid var(--border-color); margin-top: 1.5rem;">
+                        <h4 style="margin-bottom: 0.5rem; color: var(--text-dark);">Guia Ràpida de l'Espai:</h4>
+                        <p style="font-size: 0.85rem; line-height: 1.6; color: var(--accent);">
+                            1. Vés a l'<strong>Arxiu de Perfils</strong> i registra les dades i dates de naixement/defunció dels teus familiars.<br><br>
+                            2. Tria qualsevol de les seccions del menú esquerre per a començar a associar records, fotos, receptes, llocs de mapa i pensaments a cadascun d'ells.<br><br>
+                            3. Visita les seccions d'<strong>Eines de Càlcul</strong> (a la part baixa del menú) en aquells dies on trobis el dolor especialment fort, per a reordenar positivament les teves emocions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RESOLUCIÓ DE DOL -->
+        <section id="v-terapia" class="view-section">
+            <div class="section-header">
+                <h2 style="color: var(--terapeutic);">Processament i Tancament de Nodes de Dol</h2>
+                <p>Eina terapèutica de reestructuració cognitiva. Escriure sobre els conflictes o temes que van quedar inacabats ajuda a deslligar el sentiment de culpa del record d'amor.</p>
+            </div>
+            
+            <div class="card" style="border-left: 5px solid var(--terapeutic);">
+                <form id="form-terapia">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Associar a Perfil</label>
+                            <select id="t-perfil" class="select-perfil"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Focus Emocional</label>
+                            <select id="t-focus" required>
+                                <option value="El Perdó Urgent">El Perdó (Coses per les quals em vull perdonar o vull perdonar-lo/a)</option>
+                                <option value="El que va quedar pendent">L'Assumpte Obert (Allò que hauria volgut dir-li a l'últim moment i no vaig poder)</option>
+                                <option value="El Nodes de Culpa">La Culpa (Buidar el sentiment de "hauria hagut de fer més" per analitzar-lo racionalment)</option>
+                                <option value="Agraïment final de tancament">L'Adéu de Gratitud (Tancar la sessió llistant l'impacte positiu que va tindre en mi)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Desenvolupa el teu text amb total franquesa (Ningú els llegirà):</label>
+                        <textarea id="t-text" rows="6" required placeholder="Aboca tot el dolor, paraules exactes o laments sense filtres..."></textarea>
+                    </div>
+                    <button type="submit" style="background-color: var(--terapeutic);">Fixar i Processar en el meu Camí de Curació</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>El teu Treball de Resolució</h3>
+                <div id="llista-terapia"></div>
+            </div>
+        </section>
+
+        <!-- ARXIU DE PERFILS -->
+        <section id="v-perfils" class="view-section">
+            <div class="section-header"><h2>Arxiu Documental de Perfils</h2><p>Crea perfils detallats de familiars històrics per preservar la veracitat del seu llegat i mantenir viva la flama del record.</p></div>
+            <div class="card">
+                <form id="form-perfil">
+                    <div class="grid-2">
+                        <div class="form-group"><label>Nom Complet</label><input type="text" id="p-nom" required placeholder="Ex: Maria Carme Pons"></div>
+                        <div class="form-group"><label>Parentiu</label><input type="text" id="p-parentiu" required placeholder="Ex: Àvia paterna"></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Data Naixement</label><input type="date" id="p-naix"></div>
+                        <div class="form-group"><label>Data Defunció</label><input type="date" id="p-def"></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Lloc de Vida Principal</label><input type="text" id="p-lloc" placeholder="Ex: Banyoles"></div>
+                        <div class="form-group"><label>Ofici o Vocació</label><input type="text" id="p-ofici" placeholder="Ex: Mestra d'escola"></div>
+                    </div>
+                    <div class="form-group"><label>Biografia i fets reals memorables</label><textarea id="p-bio" rows="3" required></textarea></div>
+                    <button type="submit">Guardar Perfil Permanent</button>
+                </form>
+            </div>
+            <div class="card"><h3>Perfils Registrats</h3><div id="llista-perfils"></div></div>
+        </section>
+
+        <!-- DIARI -->
+        <section id="v-diari" class="view-section">
+            <div class="section-header"><h2>Diari d'Escriptura Terapèutica</h2><p>Mètode d'escriptura expressiva de suport per a comunicar-te amb l'ésser estimat.</p></div>
+            <div class="card">
+                <form id="form-diari">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Associar a Perfil</label>
+                            <select id="d-perfil" class="select-perfil"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Enfocament</label>
+                            <select id="d-tipus">
+                                <option value="Carta Unidireccional">Carta Expressiva</option>
+                                <option value="Agraïment Específic">Exercici de Gratitud</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>Escriu el teu pensament</label><textarea id="d-text" rows="4" required></textarea></div>
+                    <button type="submit">Afegir al Diari</button>
+                </form>
+            </div>
+            <div class="card"><div id="llista-diari"></div></div>
+        </section>
+
+        <!-- BAÜL DE RECORDS -->
+        <section id="v-multimedia" class="view-section">
+            <div class="section-header"><h2>Baül de Records Metòdics</h2><p>Catalogació d'objectes o experiències viscudes per a mantenir-los i que no quedin oblidats.</p></div>
+            <div class="card">
+                <form id="form-multi">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Associar a Perfil</label>
+                            <select id="m-perfil" class="select-perfil"></select>
+                        </div>
+                        <div class="form-group"><label>Títol del Record</label><input type="text" id="m-titol" required></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Tipus</label><select id="m-tipus"><option value="Objecte de Llegat">Objecte físic</option><option value="Cançó o Àudio">Música / Àudio</option></select></div>
+                        <div class="form-group"><label>Ubicació / Enllaç</label><input type="text" id="m-ubicacio" required></div>
+                    </div>
+                    <button type="submit">Registrar Record</button>
+                </form>
+            </div>
+            <div class="card"><div id="llista-multi"></div></div>
+        </section>
+
+        <!-- LLEGAT ACTIU -->
+        <section id="v-llegat" class="view-section">
+            <div class="section-header"><h2>El seu Llegat Actiu a la teva Vida</h2><p>Valors que mantens vius a la teva família i que aquella persona va instaurar.</p></div>
+            <div class="card">
+                <form id="form-llegat">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Associar a Perfil</label>
+                            <select id="l-perfil" class="select-perfil"></select>
+                        </div>
+                        <div class="form-group"><label>Valor o acció viva</label><input type="text" id="l-accio" required></div>
+                    </div>
+                    <div class="form-group"><label>Per què?</label><textarea id="l-perque" rows="3" required></textarea></div>
+                    <button type="submit">Comprometre's</button>
+                </form>
+            </div>
+            <div class="card"><div id="llista-llegat"></div></div>
+        </section>
+
+        <!-- TRETS D'HERÈNCIA -->
+        <section id="v-herencia" class="view-section">
+            <div class="section-header"><h2>Trets d'Herència i Personalitat</h2><p>Mapejar refranys, gestos o trets físics compartits de forma empírica. Tradicions orals, coses que sempre feia, et poden ajudar a recordar-lo i passar una bona estona.</p></div>
+            <div class="card">
+                <form id="form-herencia">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Associar a Perfil</label>
+                            <select id="h-perfil" class="select-perfil"></select>
+                        </div>
+                        <div class="form-group"><label>Tipus de Tret</label><select id="h-tipus"><option value="Tret Físic">Físic</option><option value="Gest o Expressió">Gestual</option><option value="Expressió o Refrany">Oral</option><option value="Tret de Caràcter">Caràcter</option></select></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Descripció</label><input type="text" id="h-tret" required></div>
+                        <div class="form-group"><label>Qui el manté viu actualment?</label><input type="text" id="h-qui" required></div>
+                    </div>
+                    <button type="submit">Mapejar Tret d'Herència</button>
+                </form>
+            </div>
+            <div class="card"><div id="llista-herencia"></div></div>
+        </section>
+
+        <!-- HISTÒRIA / TIMELINE -->
+        <section id="v-timeline" class="view-section">
+            <div class="section-header"><h2>Línia Històrica del Temps</h2><p>Ordena cronològicament les fites rellevants de la seva vida junt a la teva o els eus familiars.</p></div>
+            <div class="card">
+                <form id="form-timeline">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Associar a Perfil</label>
+                            <select id="t-line-perfil" class="select-perfil"></select>
+                        </div>
+                        <div class="form-group"><label>Any</label><input type="text" id="t-any" required></div>
+                    </div>
+                    <div class="form-group"><label>Fita / Esdeveniment</label><input type="text" id="t-fita" required></div>
+                    <div class="form-group"><label>Detalls</label><textarea id="t-detalls" rows="2"></textarea></div>
+                    <button type="submit">Afegir</button>
+                </form>
+            </div>
+            <div class="card"><div id="llista-timeline" class="timeline"></div></div>
+        </section>
+
+        <!-- CUINA DE LA MEMÒRIA -->
+        <section id="v-cuina" class="view-section">
+            <div class="section-header"><h2>Cuina de la Memòria</h2><p>Guarda el receptari emocional i tots els plats que cuinàveu junts o t'agradin o et recordin a la persona.</p></div>
+            <div class="card">
+                <form id="form-cuina">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Associar a Perfil</label>
+                            <select id="c-perfil" class="select-perfil"></select>
+                        </div>
+                        <div class="form-group"><label>Nom del Plat</label><input type="text" id="c-plat" required></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Toc especial</label><input type="text" id="c-secret"></div>
+                    </div>
+                    <div class="form-group"><label>Recepta / Tradició</label><textarea id="c-recepta" rows="3" required></textarea></div>
+                    <button type="submit">Desar Recepta</button>
+                </form>
+            </div>
+            <div class="card"><div id="llista-cuina"></div></div>
+        </section>
+
+        <!-- ANÈCDOTES -->
+        <section id="v-veus" class="view-section">
+            <div class="section-header"><h2>Anècdotes Compartides de Família</h2><p>Relats de la memòria col·lectiva que es mantenen en l'imaginari familiar i que trascendeixen en el temps.</p></div>
+            <div class="card">
+                <form id="form-veus">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Associar a Perfil</label>
+                            <select id="v-perfil" class="select-perfil"></select>
+                        </div>
+                        <div class="form-group"><label>Font (Qui ho explica)</label><input type="text" id="v-font" required></div>
+                    </div>
+                    <div class="form-group"><label>Títol</label><input type="text" id="v-titol" required></div>
+                    <div class="form-group"><label>L'Anècdota</label><textarea id="v-text" rows="3" required></textarea></div>
+                    <button type="submit">Registrar</button>
+                </form>
+            </div>
+            <div class="card"><div id="llista-veus"></div></div>
+        </section>
+
+        <!-- MAPA DE RECORDS -->
+        <section id="v-mapa" class="view-section">
+            <div class="section-header">
+                <h2>Mapa de Georrecords i Llocs de Vida</h2>
+                <p>Ubicació geogràfica de records, viatges compartits o llocs clau del seu camí. Fes clic directament sobre el mapa per capturar les coordenades.</p>
+            </div>
+            
+            <div class="grid-2">
+                <div>
+                    <div class="card">
+                        <form id="form-mapa">
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label>Associar a Perfil</label>
+                                    <select id="m-map-perfil" class="select-perfil"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Títol del lloc o record</label>
+                                    <input type="text" id="m-map-titol" required placeholder="Ex: On anàvem a buscar bolets">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Descripció, vivència o sentiment</label>
+                                <textarea id="m-map-desc" rows="3" required placeholder="Explica què va passar aquí, com era el lloc o què hi senties..."></textarea>
+                            </div>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label>Latitud</label>
+                                    <input type="number" step="any" id="m-map-lat" required readonly placeholder="Fes clic al mapa">
+                                </div>
+                                <div class="form-group">
+                                    <label>Longitud</label>
+                                    <input type="number" step="any" id="m-map-lng" required readonly placeholder="Fes clic al mapa">
+                                </div>
+                            </div>
+                            <button type="submit">Fixar Record en el Mapa</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card" style="padding: 1rem;">
+                        <div id="map" style="height: 380px; width: 100%; border-radius: 6px; z-index: 1;"></div>
+                        <p class="text-mut" style="margin-top: 0.75rem; font-size: 0.85rem; text-align: center;">Tria el lloc fent clic al mapa d'aquí dalt.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Geografia Emocional Guardada</h3>
+                <div id="llista-mapa"></div>
+            </div>
+        </section>
+
+        <!-- DATES ASSENYALADES -->
+        <section id="v-dates" class="view-section">
+            <div class="section-header">
+                <h2>Dates Assenyalades i Commemoracions</h2>
+                <p>Registra les efemèrides, aniversaris o dates concretes que vols recordar anualment de forma conscient i constructiva.</p>
+            </div>
+            <div class="card">
+                <form id="form-dates">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Associar a Perfil</label>
+                            <select id="dat-perfil" class="select-perfil"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Dia i Mes del Record</label>
+                            <input type="text" id="dat-dia-mes" required placeholder="Ex: 14 de Febrer">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Títol del Moment</label>
+                        <input type="text" id="dat-titol" required placeholder="Ex: El dia que vam adoptar el gos">
+                    </div>
+                    <div class="form-group">
+                        <label>Significat o ritual que sols fer (o t'agradaria fer)</label>
+                        <textarea id="dat-ritual" rows="3" required placeholder="Ex: Menjar un tros de pastís de llimona en el seu honor..."></textarea>
+                    </div>
+                    <button type="submit">Afegir Data d'Homenatge</button>
+                </form>
+            </div>
+            <div class="card">
+                <h3>Aniversaris i Memorials de l'Any</h3>
+                <div id="llista-dates"></div>
+            </div>
+        </section>
+
+        <!-- EINA DE CÀLCUL 1: BRÚIXOLA DE LLEGAT -->
+        <section id="v-calcul-llegat" class="view-section">
+            <div class="section-header">
+                <h2 style="color: var(--calculadora);">Brúixola de Llegat Actiu i Índex de Presència</h2>
+                <p>Mesura de quina manera els seus valors, paraules i essència segueixen manifestant-se en el món real a través de tu avui.</p>
+            </div>
+            <div class="grid-2">
+                <div>
+                    <div class="card" style="border-left: 5px solid var(--calculadora);">
+                        <form id="form-check-llegat">
+                            <div class="form-group">
+                                <label>Tria el Perfil de l'Ésser Estimat</label>
+                                <select id="cl-perfil" class="select-perfil" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Quins gestos de memòria activa has exercit avui?</label>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-item"><input type="checkbox" id="chk-cuina"> He cuinat o gaudit d'una recepta seva o àpat favorit</label>
+                                    <label class="checkbox-item"><input type="checkbox" id="chk-verbal"> He emprat algun dels seus refranys, consells o expressions d'herència</label>
+                                    <label class="checkbox-item"><input type="checkbox" id="chk-llegat"> He actuat segons algun dels seus valors (generositat, coratge, etc.)</label>
+                                    <label class="checkbox-item"><input type="checkbox" id="chk-geografia"> He visitat o pensat profundament en un lloc del seu mapa de records</label>
+                                    <label class="checkbox-item"><input type="checkbox" id="chk-sensorial"> He interactuat amb un record seu (objecte físic o cançó)</label>
+                                </div>
+                            </div>
+                            <button type="submit" style="background-color: var(--calculadora);">Registrar Acció de Llegat Actiu</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card metric-card">
+                        <h3>Índex d'Emanació del Llegat</h3>
+                        <div id="cl-index" class="metric-big">0%</div>
+                        <p id="cl-missatge" style="font-size: 0.95rem; line-height: 1.5; margin-top: 1rem;" class="text-mut">
+                            Registra el teu primer gest d'avui per calcular la teva connexió de llegat actiu.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Accions d'Honor Registrades</h3>
+                <div id="llista-calcul-llegat"></div>
+            </div>
+        </section>
+
+        <!-- EINA DE CÀLCUL 2: TRESOR DEL TEMPS -->
+        <section id="v-temps-amor" class="view-section">
+            <div class="section-header">
+                <h2 style="color: var(--calculadora);">El Tresor del Temps Compartit</h2>
+                <p>Una eina d'enfocament cognitiu de gratitud: en comptes d'enfocar el dolor en "la seva absència", calculem i celebrem matemàticament la immensitat del temps d'amor que vau viure.</p>
+            </div>
+            <div class="grid-2">
+                <div>
+                    <div class="card" style="border-left: 5px solid var(--calculadora);">
+                        <form id="form-temps-amor">
+                            <div class="form-group">
+                                <label>Selecciona el Perfil</label>
+                                <select id="ta-perfil" class="select-perfil" required></select>
+                            </div>
+                            <p style="font-size:0.85rem; color: var(--accent); margin-bottom: 1rem;">
+                                El sistema agafarà les dates de naixement i defunció del perfil, o pots configurar manualment l'interval exacte de temps en què vau viure junts a sota.
+                            </p>
+                            <div class="grid-2">
+                                <div class="form-group"><label>Inici de l'Etapa Junt (o Naixement)</label><input type="date" id="ta-data-inici"></div>
+                                <div class="form-group"><label>Final de l'Etapa (o Defunció)</label><input type="date" id="ta-data-fi"></div>
+                            </div>
+                            <button type="submit" style="background-color: var(--calculadora);">Calcular el Tresor del Temps</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card metric-card" style="text-align: left; padding: 1.5rem;">
+                        <h3 style="text-align: center; margin-bottom: 1rem; color: var(--text-dark);">El balanç del vostre tresor d'amor:</h3>
+                        <div id="ta-resultat" style="display:none; flex-direction:column; gap:1rem;">
+                            <div style="display:flex; justify-content:space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                                <span>Dies Compartits a la Terra:</span>
+                                <strong id="ta-dies" style="color: var(--calculadora); font-size:1.1rem;">0</strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                                <span>Hores Respirant Sota el Mateix Cel:</span>
+                                <strong id="ta-hores" style="color: var(--calculadora); font-size:1.1rem;">0</strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                                <span>Àpats i Converses de Fons:</span>
+                                <strong id="ta-apats" style="color: var(--calculadora); font-size:1.1rem;">0</strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                                <span>Batecs Sincronitzats de Vida:</span>
+                                <strong id="ta-batecs" style="color: var(--calculadora); font-size:1.1rem;">0</strong>
+                            </div>
+                            <div class="pilar-box" style="background: #faf5ff; border-color: #d6bdf2; margin-top:0.5rem;">
+                                <strong>Reflexió de Dol Actiu:</strong><br>
+                                <span id="ta-reflexio" style="font-size:0.9rem; display:block; margin-top:0.3rem;"></span>
+                            </div>
+                        </div>
+                        <div id="ta-placeholder" style="text-align: center; padding: 2rem 0;" class="text-mut">
+                            Selecciona un perfil o configura les dates per generar la mètrica de l'amor acumulat.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // NAVEGACIÓ
+            const menuItems = document.querySelectorAll('.sidebar-item');
+            const sections = document.querySelectorAll('.view-section');
+
+            menuItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    menuItems.forEach(i => i.classList.remove('active'));
+                    sections.forEach(s => s.classList.remove('active'));
+
+                    item.classList.add('active');
+                    const target = item.getAttribute('data-target');
+                    document.getElementById(target).classList.add('active');
+
+                    // Si entrem a la vista de mapa, actualitzem Leaflet
+                    if (target === 'v-mapa') {
+                        setTimeout(() => {
+                            inicialitzarMapa();
+                        }, 50);
+                    }
+                });
+            });
+
+            let terapia = JSON.parse(localStorage.getItem('em_terapia')) || [];
+            let perfils = JSON.parse(localStorage.getItem('em_perfils')) || [];
+            let diari = JSON.parse(localStorage.getItem('em_diari')) || [];
+            let multi = JSON.parse(localStorage.getItem('em_multi')) || [];
+            let llegat = JSON.parse(localStorage.getItem('em_llegat')) || [];
+            let herencia = JSON.parse(localStorage.getItem('em_herencia')) || [];
+            let timeline = JSON.parse(localStorage.getItem('em_timeline')) || [];
+            let cuina = JSON.parse(localStorage.getItem('em_cuina')) || [];
+            let veus = JSON.parse(localStorage.getItem('em_veus')) || [];
+
+            // Nous arrays de dades
+            let mapaRecords = JSON.parse(localStorage.getItem('em_mapaRecords')) || [];
+            let datesAssenyalades = JSON.parse(localStorage.getItem('em_datesAssenyalades')) || [];
+            let calculLlegat = JSON.parse(localStorage.getItem('em_calculLlegat')) || [];
+
+            // VARIABLES DEL MAPA
+            let map = null;
+            let markersGroup = null;
+
+            function inicialitzarMapa() {
+                if (!map) {
+                    map = L.map('map').setView([41.72, 1.82], 8);
+                    
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }).addTo(map);
+
+                    markersGroup = L.layerGroup().addTo(map);
+
+                    // Escoltador del clic per recollir coordenades de forma interactiva
+                    map.on('click', (e) => {
+                        document.getElementById('m-map-lat').value = e.latlng.lat.toFixed(6);
+                        document.getElementById('m-map-lng').value = e.latlng.lng.toFixed(6);
+                    });
+                } else {
+                    map.invalidateSize();
+                }
+                pintarMarcadorsMapa();
+            }
+
+            function pintarMarcadorsMapa() {
+                if (!map || !markersGroup) return;
+                markersGroup.clearLayers();
+                mapaRecords.forEach(rec => {
+                    const marker = L.marker([rec.lat, rec.lng]).addTo(markersGroup);
+                    marker.bindPopup(`<b>${rec.titol}</b><br>${rec.desc}`);
+                });
+            }
+
+            // Sincronització global dels desplegables de selecció de perfils en els formularis
+            function actualitzarDesplegablesPerfils() {
+                const selectors = document.querySelectorAll('.select-perfil');
+                selectors.forEach(sel => {
+                    const valorAnterior = sel.value;
+                    sel.innerHTML = '<option value="Global">Global / Família general</option>';
+                    perfils.forEach(p => {
+                        sel.innerHTML += `<option value="${p.nom}">${p.nom} (${p.parentiu})</option>`;
+                    });
+                    if (valorAnterior) {
+                        sel.value = valorAnterior;
+                    }
+                });
+            }
+
+            // Compta de forma reactiva les relacions de dades de cada perfil per mostrar un resum documental
+            function obtenirMetriquesPerfil(nomPerfil) {
+                if (nomPerfil === 'Global') return null;
+                const filterFn = (item) => item.perfil === nomPerfil;
+                return {
+                    terapia: terapia.filter(filterFn).length,
+                    diari: diari.filter(filterFn).length,
+                    records: multi.filter(filterFn).length,
+                    llegat: llegat.filter(filterFn).length,
+                    herencia: herencia.filter(filterFn).length,
+                    timeline: timeline.filter(filterFn).length,
+                    cuina: cuina.filter(filterFn).length,
+                    veus: veus.filter(filterFn).length,
+                    mapa: mapaRecords.filter(filterFn).length,
+                    dates: datesAssenyalades.filter(filterFn).length
+                };
+            }
+
+            function pintarTerapia() {
+                const con = document.getElementById('llista-terapia');
+                if(terapia.length === 0) { con.innerHTML = '<p class="text-mut">Encara no s\'ha treballat cap bloc de tancament emocional.</p>'; return; }
+                con.innerHTML = '';
+                terapia.forEach(t => {
+                    const perfilPill = t.perfil && t.perfil !== 'Global' ? `<span class="etiqueta-tipus" style="background:#e2e8f0; color:#4a5568;">👤 ${t.perfil}</span>` : '';
+                    con.innerHTML += `
+                        <div class="item-llista" style="border-left-color: var(--terapeutic);">
+                            <span class="etiqueta-tipus" style="background:#fadbd8; color:#c0392b;">${t.focus}</span>
+                            ${perfilPill}
+                            <p style="white-space: pre-line; font-weight: 500; margin-top: 0.5rem;">${t.text}</p>
+                            <small class="text-mut" style="display:block; margin-top:0.5rem;">Processat el: ${t.data}</small>
+                        </div>`;
+                });
+            }
+
+            function pintarPerfils() {
+                const con = document.getElementById('llista-perfils');
+                if(perfils.length === 0) { con.innerHTML = '<p class="text-mut">Cap perfil creat.</p>'; return; }
+                con.innerHTML = '';
+                perfils.forEach(p => { 
+                    const m = obtenirMetriquesPerfil(p.nom);
+                    let infoRelacionada = '';
+                    if (m) {
+                        const parts = [];
+                        if (m.terapia > 0) parts.push(`❤️ ${m.terapia} Dol`);
+                        if (m.diari > 0) parts.push(`📖 ${m.diari} Diari`);
+                        if (m.records > 0) parts.push(`📦 ${m.records} Records`);
+                        if (m.llegat > 0) parts.push(`✨ ${m.llegat} Llegat`);
+                        if (m.herencia > 0) parts.push(`🧬 ${m.herencia} Trets`);
+                        if (m.timeline > 0) parts.push(`⏳ ${m.timeline} Línia`);
+                        if (m.cuina > 0) parts.push(`🍳 ${m.cuina} Cuina`);
+                        if (m.veus > 0) parts.push(`💬 ${m.veus} Anècdotes`);
+                        if (m.mapa > 0) parts.push(`📍 ${m.mapa} Mapa`);
+                        if (m.dates > 0) parts.push(`📅 ${m.dates} Dates`);
+                        
+                        if (parts.length > 0) {
+                            infoRelacionada = `<div style="margin-top:0.8rem; padding-top:0.6rem; border-top:1px dashed var(--border-color); font-size:0.8rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+                                <strong>Vila de Records:</strong> ${parts.join(' | ')}
+                            </div>`;
+                        }
+                    }
+
+                    con.innerHTML += `
+                        <div class="item-llista">
+                            <h3>${p.nom} (${p.parentiu})</h3>
+                            <p class="text-mut" style="font-size:0.85rem; margin-bottom:0.4rem;">
+                                ${p.naix ? 'Nax: ' + p.naix : ''} ${p.def ? ' - Def: ' + p.def : ''} ${p.lloc ? ' | ' + p.lloc : ''} ${p.ofici ? ' | ' + p.ofici : ''}
+                            </p>
+                            <p>${p.bio}</p>
+                            ${infoRelacionada}
+                        </div>`; 
+                });
+            }
+
+            function pintarDiari() {
+                const con = document.getElementById('llista-diari');
+                if(diari.length === 0) { con.innerHTML = '<p class="text-mut">Diari buit.</p>'; return; }
+                con.innerHTML = '';
+                diari.forEach(d => { 
+                    const perfilPill = d.perfil && d.perfil !== 'Global' ? `<span class="etiqueta-tipus" style="background:#e2e8f0; color:#4a5568;">👤 ${d.perfil}</span>` : '';
+                    con.innerHTML += `
+                        <div class="item-llista" style="border-left-color: #9b59b6;">
+                            <span class="etiqueta-tipus" style="background:#f5eef8; color:#8e44ad;">${d.tipus}</span>
+                            ${perfilPill}
+                            <p style="margin-top:0.5rem;">"${d.text}"</p>
+                        </div>`; 
+                });
+            }
+
+            function pintarMulti() {
+                const con = document.getElementById('llista-multi');
+                if(multi.length === 0) { con.innerHTML = '<p class="text-mut">Sense records.</p>'; return; }
+                con.innerHTML = '';
+                multi.forEach(m => { 
+                    const perfilPill = m.perfil && m.perfil !== 'Global' ? `<span class="etiqueta-tipus" style="background:#e2e8f0; color:#4a5568;">👤 ${m.perfil}</span>` : '';
+                    con.innerHTML += `
+                        <div class="item-llista" style="border-left-color: #3498db;">
+                            ${perfilPill}
+                            <h3>${m.titol}</h3>
+                            <p class="text-mut" style="margin-top:0.25rem;">${m.tipus} en: ${m.ubicacio}</p>
+                        </div>`; 
+                });
+            }
+
+            function pintarLlegat() {
+                const con = document.getElementById('llista-llegat');
+                if(llegat.length === 0) { con.innerHTML = '<p class="text-mut">Sense llegat.</p>'; return; }
+                con.innerHTML = '';
+                llegat.forEach(l => { 
+                    const perfilPill = l.perfil && l.perfil !== 'Global' ? `<span class="etiqueta-tipus" style="background:#e2e8f0; color:#4a5568;">👤 ${l.perfil}</span>` : '';
+                    con.innerHTML += `
+                        <div class="item-llista" style="border-left-color: #e67e22;">
+                            ${perfilPill}
+                            <h3 style="margin-top:0.25rem;">Compromís: ${l.accio}</h3>
+                            <p>${l.perque}</p>
+                        </div>`; 
+                });
+            }
+
+            function pintarHerencia() {
+                const con = document.getElementById('llista-herencia');
+                if(herencia.length === 0) { con.innerHTML = '<p class="text-mut">Sense trets.</p>'; return; }
+                con.innerHTML = '';
+                herencia.forEach(h => { 
+                    const perfilPill = h.perfil && h.perfil !== 'Global' ? `<span class="etiqueta-tipus" style="background:#e2e8f0; color:#4a5568;">👤 ${h.perfil}</span>` : '';
+                    con.innerHTML += `
+                        <div class="item-llista" style="border-left-color: #1abc9c;">
+                            <span class="etiqueta-tipus" style="background:#e0f7fa; color:#006064;">${h.tipus}</span>
+                            ${perfilPill}
+                            <h3 style="margin-top:0.25rem;">${h.tret}</h3>
+                            <p>Visible en: ${h.qui}</p>
+                        </div>`; 
+                });
+            }
+
+            function pintarTimeline() {
+                const con = document.getElementById('llista-timeline');
+                if(timeline.length === 0) { con.innerHTML = '<p class="text-mut">Sense línia temporal.</p>'; return; }
+                timeline.sort((a,b) => parseInt(a.any) - parseInt(b.any));
+                con.innerHTML = '';
+                timeline.forEach(t => { 
+                    const perfilPill = t.perfil && t.perfil !== 'Global' ? `<span class="etiqueta-tipus" style="background:#e2e8f0; color:#4a5568; font-size:0.7rem; padding:0.1rem 0.4rem;">👤 ${t.perfil}</span>` : '';
+                    con.innerHTML += `
+                        <div class="timeline-item">
+                            <div class="timeline-year">${t.any} ${perfilPill}</div>
+                            <strong>${t.fita}</strong>
+                            <p class="text-mut">${t.detalls}</p>
+                        </div>`; 
+                });
+            }
+
+            function pintarCuina() {
+                const con = document.getElementById('llista-cuina');
+                if(cuina.length === 0) { con.innerHTML = '<p class="text-mut">Sense receptes.</p>'; return; }
+                con.innerHTML = '';
+                cuina.forEach(c => { 
+                    const perfilPill = c.perfil && c.perfil !== 'Global' ? `<span class="etiqueta-tipus" style="background:#e2e8f0; color:#4a5568;">👤 ${c.perfil}</span>` : '';
+                    con.innerHTML += `
+                        <div class="item-llista" style="border-left-color: #e74c3c;">
+                            ${perfilPill}
+                            <h3 style="margin-top:0.25rem;">${c.plat}</h3>
+                            <p><strong>Clau:</strong> ${c.secret}</p>
+                            <p>${c.recepta}</p>
+                        </div>`; 
+                });
+            }
+
+            function pintarVeus() {
+                const con = document.getElementById('llista-veus');
+                if(veus.length === 0) { con.innerHTML = '<p class="text-mut">Sense relats.</p>'; return; }
+                con.innerHTML = '';
+                veus.forEach(v => { 
+                    const perfilPill = v.perfil && v.perfil !== 'Global' ? `<span class="etiqueta-tipus" style="background:#e2e8f0; color:#4a5568;">👤 ${v.perfil}</span>` : '';
+                    con.innerHTML += `
+                        <div class="item-llista" style="border-left-color: #f1c40f;">
+                            ${perfilPill}
+                            <h3 style="margin-top:0.25rem;">${v.titol}</h3>
+                            <p>"${v.text}"</p>
+                            <small>Font: ${v.font}</small>
+                        </div>`; 
+                });
+            }
+
+            function pintarMapaRecords() {
+                const con = document.getElementById('llista-mapa');
+                if (mapaRecords.length === 0) { con.innerHTML = '<p class="text-mut">Encara no hi ha punts geogràfics desats al mapa.</p>'; return; }
+                con.innerHTML = '';
+                mapaRecords.forEach((m, idx) => {
+                    const perfilPill = m.perfil && m.perfil !== 'Global' ? `<span class="etiqueta-tipus" style="background:#e2e8f0; color:#4a5568;">👤 ${m.perfil}</span>` : '';
+                    con.innerHTML += `
+                        <div class="item-llista" style="border-left-color: #2ecc71;">
+                            ${perfilPill}
+                            <h3 style="margin-top:0.25rem;">${m.titol}</h3>
+                            <p>${m.desc}</p>
+                            <small class="text-mut" style="display:block; margin-top:0.5rem;">
+                                Lat: ${m.lat} | Lng: ${m.lng} | 
+                                <a href="#" class="enllac-mapa-focus" data-lat="${m.lat}" data-lng="${m.lng}" style="color: var(--sidebar-active); font-weight:600; text-decoration:none;">Ves al mapa</a>
+                            </small>
+                        </div>`;
+                });
+
+                // Focus d'ubicació del mapa interactiu
+                document.querySelectorAll('.enllac-mapa-focus').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const targetLat = parseFloat(e.target.getAttribute('data-lat'));
+                        const targetLng = parseFloat(e.target.getAttribute('data-lng'));
+                        if (map) {
+                            map.setView([targetLat, targetLng], 14);
+                            map.eachLayer(layer => {
+                                if (layer instanceof L.Marker) {
+                                    const lPos = layer.getLatLng();
+                                    if (lPos.lat === targetLat && lPos.lng === targetLng) {
+                                        layer.openPopup();
+                                    }
+                                }
+                            });
+                        }
+                    });
+                });
+            }
+
+            function pintarDatesAssenyalades() {
+                const con = document.getElementById('llista-dates');
+                if (datesAssenyalades.length === 0) { con.innerHTML = '<p class="text-mut">Sense dates registrades actualment.</p>'; return; }
+                con.innerHTML = '';
+                datesAssenyalades.forEach(d => {
+                    const perfilPill = d.perfil && d.perfil !== 'Global' ? `<span class="etiqueta-tipus" style="background:#e2e8f0; color:#4a5568;">👤 ${d.perfil}</span>` : '';
+                    con.innerHTML += `
+                        <div class="item-llista" style="border-left-color: #f39c12;">
+                            <span class="etiqueta-tipus" style="background:#fdebd0; color:#d35400;">${d.diaMes}</span>
+                            ${perfilPill}
+                            <h3 style="margin-top:0.25rem;">${d.titol}</h3>
+                            <p>${d.ritual}</p>
+                        </div>`;
+                });
+            }
+
+            function pintarCalculLlegat() {
+                const con = document.getElementById('llista-calcul-llegat');
+                if (calculLlegat.length === 0) { con.innerHTML = '<p class="text-mut">Encara no has desat cap acció d\'homenatge actiu avui.</p>'; return; }
+                con.innerHTML = '';
+                calculLlegat.forEach(cl => {
+                    const perfilPill = cl.perfil && cl.perfil !== 'Global' ? `<span class="etiqueta-tipus" style="background:#f5eef8; color:#8e44ad;">👤 ${cl.perfil}</span>` : '';
+                    const elementsActius = [];
+                    if (cl.cuina) elementsActius.push("Nutrició d'Amor (Cuina)");
+                    if (cl.verbal) elementsActius.push("Llenguatge Viu (Expressió)");
+                    if (cl.llegat) elementsActius.push("Ètica Compartida (Valors)");
+                    if (cl.geografia) elementsActius.push("Geografia de Pau (Llocs)");
+                    if (cl.sensorial) elementsActius.push("Sintonització (Records)");
+
+                    con.innerHTML += `
+                        <div class="item-llista" style="border-left-color: var(--calculadora);">
+                            ${perfilPill}
+                            <span class="etiqueta-tipus" style="background: #e8d5f5; color: var(--calculadora);">${cl.index}% d'Emanació</span>
+                            <p style="margin-top:0.5rem; font-weight:600;">Gestos activats:</p>
+                            <p class="text-mut" style="font-size:0.9rem;">${elementsActius.join(', ')}</p>
+                            <small class="text-mut" style="display:block; margin-top:0.25rem;">Registrat el: ${cl.data}</small>
+                        </div>`;
+                });
+            }
+
+            document.getElementById('form-terapia').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const ara = new Date().toLocaleDateString('ca-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                terapia.unshift({ 
+                    perfil: document.getElementById('t-perfil').value, 
+                    focus: document.getElementById('t-focus').value, 
+                    text: document.getElementById('t-text').value, 
+                    data: ara 
+                });
+                localStorage.setItem('em_terapia', JSON.stringify(terapia)); pintarTerapia(); pintarPerfils(); e.target.reset();
+            });
+
+            document.getElementById('form-perfil').addEventListener('submit', (e) => {
+                e.preventDefault();
+                perfils.push({ 
+                    nom: document.getElementById('p-nom').value, 
+                    parentiu: document.getElementById('p-parentiu').value, 
+                    naix: document.getElementById('p-naix').value,
+                    def: document.getElementById('p-def').value,
+                    lloc: document.getElementById('p-lloc').value,
+                    ofici: document.getElementById('p-ofici').value,
+                    bio: document.getElementById('p-bio').value 
+                });
+                localStorage.setItem('em_perfils', JSON.stringify(perfils)); 
+                pintarPerfils(); 
+                actualitzarDesplegablesPerfils(); 
+                e.target.reset();
+            });
+
+            document.getElementById('form-diari').addEventListener('submit', (e) => {
+                e.preventDefault();
+                diari.unshift({ 
+                    perfil: document.getElementById('d-perfil').value,
+                    tipus: document.getElementById('d-tipus').value, 
+                    text: document.getElementById('d-text').value 
+                });
+                localStorage.setItem('em_diari', JSON.stringify(diari)); pintarDiari(); pintarPerfils(); e.target.reset();
+            });
+
+            document.getElementById('form-multi').addEventListener('submit', (e) => {
+                e.preventDefault();
+                multi.push({ 
+                    perfil: document.getElementById('m-perfil').value,
+                    titol: document.getElementById('m-titol').value, 
+                    tipus: document.getElementById('m-tipus').value, 
+                    ubicacio: document.getElementById('m-ubicacio').value 
+                });
+                localStorage.setItem('em_multi', JSON.stringify(multi)); pintarMulti(); pintarPerfils(); e.target.reset();
+            });
+
+            document.getElementById('form-llegat').addEventListener('submit', (e) => {
+                e.preventDefault();
+                llegat.push({ 
+                    perfil: document.getElementById('l-perfil').value,
+                    accio: document.getElementById('l-accio').value, 
+                    perque: document.getElementById('l-perque').value 
+                });
+                localStorage.setItem('em_llegat', JSON.stringify(llegat)); pintarLlegat(); pintarPerfils(); e.target.reset();
+            });
+
+            document.getElementById('form-herencia').addEventListener('submit', (e) => {
+                e.preventDefault();
+                herencia.push({ 
+                    perfil: document.getElementById('h-perfil').value,
+                    tipus: document.getElementById('h-tipus').value, 
+                    tret: document.getElementById('h-tret').value, 
+                    qui: document.getElementById('h-qui').value 
+                });
+                localStorage.setItem('em_herencia', JSON.stringify(herencia)); pintarHerencia(); pintarPerfils(); e.target.reset();
+            });
+
+            document.getElementById('form-timeline').addEventListener('submit', (e) => {
+                e.preventDefault();
+                timeline.push({ 
+                    perfil: document.getElementById('t-line-perfil').value,
+                    any: document.getElementById('t-any').value, 
+                    fita: document.getElementById('t-fita').value, 
+                    detalls: document.getElementById('t-detalls').value 
+                });
+                localStorage.setItem('em_timeline', JSON.stringify(timeline)); pintarTimeline(); pintarPerfils(); e.target.reset();
+            });
+
+            document.getElementById('form-cuina').addEventListener('submit', (e) => {
+                e.preventDefault();
+                cuina.push({ 
+                    perfil: document.getElementById('c-perfil').value,
+                    plat: document.getElementById('c-plat').value, 
+                    secret: document.getElementById('c-secret').value, 
+                    recepta: document.getElementById('c-recepta').value 
+                });
+                localStorage.setItem('em_cuina', JSON.stringify(cuina)); pintarCuina(); pintarPerfils(); e.target.reset();
+            });
+
+            document.getElementById('form-veus').addEventListener('submit', (e) => {
+                e.preventDefault();
+                veus.push({ 
+                    perfil: document.getElementById('v-perfil').value,
+                    font: document.getElementById('v-font').value, 
+                    titol: document.getElementById('v-titol').value, 
+                    text: document.getElementById('v-text').value 
+                });
+                localStorage.setItem('em_veus', JSON.stringify(veus)); pintarVeus(); pintarPerfils(); e.target.reset();
+            });
+
+            document.getElementById('form-mapa').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const nouRecord = {
+                    perfil: document.getElementById('m-map-perfil').value,
+                    titol: document.getElementById('m-map-titol').value,
+                    desc: document.getElementById('m-map-desc').value,
+                    lat: parseFloat(document.getElementById('m-map-lat').value),
+                    lng: parseFloat(document.getElementById('m-map-lng').value)
+                };
+                mapaRecords.push(nouRecord);
+                localStorage.setItem('em_mapaRecords', JSON.stringify(mapaRecords));
+                
+                pintarMapaRecords();
+                pintarMarcadorsMapa();
+                pintarPerfils();
+                e.target.reset();
+            });
+
+            document.getElementById('form-dates').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const novaData = {
+                    perfil: document.getElementById('dat-perfil').value,
+                    diaMes: document.getElementById('dat-dia-mes').value,
+                    titol: document.getElementById('dat-titol').value,
+                    ritual: document.getElementById('dat-ritual').value
+                };
+                datesAssenyalades.push(novaData);
+                localStorage.setItem('em_datesAssenyalades', JSON.stringify(datesAssenyalades));
+                
+                pintarDatesAssenyalades();
+                pintarPerfils();
+                e.target.reset();
+            });
+
+            document.getElementById('form-check-llegat').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const chkCuina = document.getElementById('chk-cuina').checked;
+                const chkVerbal = document.getElementById('chk-verbal').checked;
+                const chkLlegat = document.getElementById('chk-llegat').checked;
+                const chkGeografia = document.getElementById('chk-geografia').checked;
+                const chkSensorial = document.getElementById('chk-sensorial').checked;
+
+                let score = 0;
+                if (chkCuina) score += 20;
+                if (chkVerbal) score += 20;
+                if (chkLlegat) score += 20;
+                if (chkGeografia) score += 20;
+                if (chkSensorial) score += 20;
+
+                const perfilSel = document.getElementById('cl-perfil').value;
+                const ara = new Date().toLocaleDateString('ca-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                let msg = "";
+                if (score === 0) {
+                    msg = "Recorda que petits gests com pensar en ells o cuinar un dels seus plats obren un pont emocional inesborrable. Prova d'integrar-ne un avui.";
+                } else if (score <= 40) {
+                    msg = `Balanç emotiu d'un ${score}% de llegat. Avui s'ha notat la seva petjada a la Terra a través dels teus gests quotidians. Continua així!`;
+                } else if (score <= 80) {
+                    msg = `Impressionant! Un ${score}% d'Índex de Llegat. Això significa que els valors o consells que et van deixar continuen dirigint decisions reals del teu dia a dia. Són fets de veritat.`;
+                } else {
+                    msg = "Un 100% de Llegat Actiu complet! Avui has materialitzat la seva essència de forma immillorable. Aquesta és la millor resposta: ser la continuació de la seva flama.";
+                }
+
+                document.getElementById('cl-index').innerText = score + "%";
+                document.getElementById('cl-missatge').innerText = msg;
+
+                calculLlegat.unshift({
+                    perfil: perfilSel,
+                    cuina: chkCuina,
+                    verbal: chkVerbal,
+                    llegat: chkLlegat,
+                    geografia: chkGeografia,
+                    sensorial: chkSensorial,
+                    index: score,
+                    data: ara
+                });
+
+                localStorage.setItem('em_calculLlegat', JSON.stringify(calculLlegat));
+                pintarCalculLlegat();
+                e.target.reset();
+            });
+
+            document.getElementById('form-temps-amor').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const perfilSel = document.getElementById('ta-perfil').value;
+                let dataIniciStr = document.getElementById('ta-data-inici').value;
+                let dataFiStr = document.getElementById('ta-data-fi').value;
+
+                if (!dataIniciStr || !dataFiStr) {
+                    const perfilTrobat = perfils.find(p => p.nom === perfilSel);
+                    if (perfilTrobat) {
+                        if (perfilTrobat.naix) dataIniciStr = perfilTrobat.naix;
+                        if (perfilTrobat.def) dataFiStr = perfilTrobat.def;
+                    }
+                }
+
+                if (!dataIniciStr || !dataFiStr) {
+                    document.getElementById('ta-placeholder').innerText = "❌ Si us plau, defineix dates d'etapa correctes o configura-les a l'arxiu de perfils.";
+                    return;
+                }
+
+                const dInici = new Date(dataIniciStr);
+                const dFi = new Date(dataFiStr);
+
+                if (dFi < dInici) {
+                    document.getElementById('ta-placeholder').innerText = "❌ La data final no pot ser anterior a la data inicial d'etapa.";
+                    return;
+                }
+
+                const diffTemps = Math.abs(dFi - dInici);
+                const totalDies = Math.ceil(diffTemps / (1000 * 60 * 60 * 24));
+                const totalHores = totalDies * 24;
+                const totalApats = Math.round(totalDies * 2.5);
+                const totalBatecs = totalDies * 100000;
+
+                document.getElementById('ta-dies').innerText = totalDies.toLocaleString('ca-ES');
+                document.getElementById('ta-hores').innerText = totalHores.toLocaleString('ca-ES');
+                document.getElementById('ta-apats').innerText = totalApats.toLocaleString('ca-ES');
+                document.getElementById('ta-batecs').innerText = totalBatecs.toLocaleString('ca-ES');
+
+                const anys = (totalDies / 365).toFixed(1);
+                const reflexio = `Vau viure ${anys} anys de proximitat física i afectiva. No deixis que la ment et calculi l'absència; aquest tresor de ${totalHores.toLocaleString('ca-ES')} hores d'amor ja està inscrit a la teva ment, a la teva identitat i a la teva ànima. Aquest temps és etern.`;
+                
+                document.getElementById('ta-reflexio').innerText = reflexio;
+
+                document.getElementById('ta-placeholder').style.display = 'none';
+                document.getElementById('ta-resultat').style.display = 'flex';
+            });
+
+            document.getElementById('ta-perfil').addEventListener('change', (e) => {
+                const nom = e.target.value;
+                const p = perfils.find(perf => perf.nom === nom);
+                if (p) {
+                    if (p.naix) document.getElementById('ta-data-inici').value = p.naix;
+                    if (p.def) document.getElementById('ta-data-fi').value = p.def;
+                } else {
+                    document.getElementById('ta-data-inici').value = '';
+                    document.getElementById('ta-data-fi').value = '';
+                }
+            });
+
+            // EXECUCIÓ INICIAL EN CARREGAR
+            actualitzarDesplegablesPerfils();
+            pintarTerapia(); 
+            pintarPerfils(); 
+            pintarDiari(); 
+            pintarMulti(); 
+            pintarLlegat(); 
+            pintarHerencia(); 
+            pintarTimeline(); 
+            pintarCuina(); 
+            pintarVeus();
+            pintarMapaRecords();
+            pintarDatesAssenyalades();
+            pintarCalculLlegat();
+        });
+    </script>
+</body>
+</html>
