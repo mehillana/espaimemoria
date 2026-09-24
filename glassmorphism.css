@@ -1,0 +1,94 @@
+/* Espai Memòria — capa visual glassmorphism */
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&display=swap');
+
+:root {
+  --bg-main: #eef3f7;
+  --bg-sidebar: rgba(29, 43, 58, 0.82);
+  --sidebar-hover: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #35c7ad;
+  --text-light: #f4fbff;
+  --text-dark: #243746;
+  --card-bg: rgba(255, 255, 255, 0.64);
+  --border-color: rgba(255, 255, 255, 0.7);
+  --accent: #6b7d8d;
+  --terapeutic: #dc7180;
+  --calculadora: #9876cf;
+  --glass-shadow: 0 18px 45px rgba(43, 70, 91, 0.12);
+}
+
+* { font-family: 'Google Sans Code', ui-monospace, monospace; }
+
+body {
+  background:
+    radial-gradient(circle at 8% 8%, rgba(53, 199, 173, .22), transparent 30rem),
+    radial-gradient(circle at 92% 88%, rgba(152, 118, 207, .18), transparent 34rem),
+    var(--bg-main);
+}
+
+.sidebar {
+  background: linear-gradient(160deg, rgba(35, 56, 73, .94), rgba(36, 56, 73, .76));
+  border-right: 1px solid rgba(255,255,255,.16);
+  box-shadow: 14px 0 38px rgba(28, 52, 70, .16);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.sidebar-brand h1 { letter-spacing: .02em; }
+.sidebar-item { border-radius: 0 18px 18px 0; margin: .15rem .75rem .15rem 0; }
+.sidebar-item:hover { background-color: var(--sidebar-hover); transform: translateX(3px); }
+.sidebar-item.active { box-shadow: 0 8px 24px rgba(53, 199, 173, .18); }
+
+.main-content { padding: clamp(1.25rem, 3vw, 3rem); }
+.section-header {
+  border-bottom: 1px solid rgba(107,125,141,.22);
+  padding: 1rem 1.25rem 1.15rem;
+  margin-bottom: 1.6rem;
+}
+.section-header h2 { letter-spacing: -.04em; }
+
+.card, .metric-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 22px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+}
+
+.card:hover { box-shadow: 0 22px 52px rgba(43,70,91,.16); }
+.pilar-box, .item-llista, .metric-card {
+  background: rgba(255,255,255,.44);
+  border-color: rgba(255,255,255,.72);
+  border-radius: 16px;
+}
+
+input, textarea, select {
+  background: rgba(255,255,255,.58);
+  border: 1px solid rgba(107,125,141,.25);
+  border-radius: 12px;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+}
+input:focus, textarea:focus, select:focus {
+  background: rgba(255,255,255,.88);
+  border-color: var(--sidebar-active);
+  box-shadow: 0 0 0 4px rgba(53,199,173,.14);
+}
+
+button {
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(35, 96, 94, .18);
+}
+button:hover { transform: translateY(-1px); filter: saturate(1.08); }
+
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  .sidebar { width: 235px; }
+  .home-grid, .grid-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  body { display: block; }
+  .sidebar { width: 100%; height: auto; max-height: 42vh; }
+  .sidebar-menu { overflow-y: auto; }
+  .main-content { height: auto; min-height: 58vh; }
+}
